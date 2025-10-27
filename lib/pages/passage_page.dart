@@ -20,25 +20,28 @@ class _PassagePageState extends State<PassagePage> {
   @override
   void initState() {
     super.initState();
-    // Listen for audio duration changes
-    _player.onDurationChanged.listen((duration) {
-      setState(() {
-        totalDuration = duration;
+    // Only set up audio listeners if audioUrl is provided
+    if (widget.passage.audioUrl.isNotEmpty) {
+      // Listen for audio duration changes
+      _player.onDurationChanged.listen((duration) {
+        setState(() {
+          totalDuration = duration;
+        });
       });
-    });
-    // Listen for position changes
-    _player.onPositionChanged.listen((position) {
-      setState(() {
-        currentPosition = position;
+      // Listen for position changes
+      _player.onPositionChanged.listen((position) {
+        setState(() {
+          currentPosition = position;
+        });
       });
-    });
-    // Optionally, handle audio completion
-    _player.onPlayerComplete.listen((event) {
-      setState(() {
-        isPlaying = false;
-        currentPosition = Duration.zero;
+      // Optionally, handle audio completion
+      _player.onPlayerComplete.listen((event) {
+        setState(() {
+          isPlaying = false;
+          currentPosition = Duration.zero;
+        });
       });
-    });
+    }
   }
 
   @override
@@ -48,6 +51,8 @@ class _PassagePageState extends State<PassagePage> {
   }
 
   Future<void> _playPauseAudio() async {
+    if (widget.passage.audioUrl.isEmpty) return;
+    
     if (!isPlaying) {
       await _player.play(UrlSource(widget.passage.audioUrl));
       setState(() {
@@ -62,6 +67,8 @@ class _PassagePageState extends State<PassagePage> {
   }
 
   Future<void> _stopAudio() async {
+    if (widget.passage.audioUrl.isEmpty) return;
+    
     await _player.stop();
     setState(() {
       isPlaying = false;
@@ -70,6 +77,8 @@ class _PassagePageState extends State<PassagePage> {
   }
 
   Future<void> _rewind() async {
+    if (widget.passage.audioUrl.isEmpty) return;
+    
     Duration newPosition = currentPosition - const Duration(seconds: 10);
     if (newPosition < Duration.zero) {
       newPosition = Duration.zero;
@@ -78,6 +87,8 @@ class _PassagePageState extends State<PassagePage> {
   }
 
   Future<void> _fastForward() async {
+    if (widget.passage.audioUrl.isEmpty) return;
+    
     Duration newPosition = currentPosition + const Duration(seconds: 10);
     if (newPosition > totalDuration) {
       newPosition = totalDuration;
@@ -99,38 +110,40 @@ class _PassagePageState extends State<PassagePage> {
           style: const TextStyle(fontSize: 16),
         ),
       ),
-      // Fixed audio control buttons at the bottom
-      bottomNavigationBar: Container(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            IconButton(
-              iconSize: 32,
-              icon: const Icon(Icons.replay_10),
-              onPressed: _rewind,
-            ),
-            IconButton(
-              iconSize: 48,
-              icon: Icon(isPlaying
-                  ? Icons.pause_circle_filled
-                  : Icons.play_circle_filled),
-              onPressed: _playPauseAudio,
-            ),
-            IconButton(
-              iconSize: 32,
-              icon: const Icon(Icons.forward_10),
-              onPressed: _fastForward,
-            ),
-            IconButton(
-              iconSize: 32,
-              icon: const Icon(Icons.stop),
-              onPressed: _stopAudio,
-            ),
-          ],
-        ),
-      ),
+      // Fixed audio control buttons at the bottom, only shown if audioUrl is provided
+      bottomNavigationBar: widget.passage.audioUrl.isNotEmpty
+          ? Container(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  IconButton(
+                    iconSize: 32,
+                    icon: const Icon(Icons.replay_10),
+                    onPressed: _rewind,
+                  ),
+                  IconButton(
+                    iconSize: 48,
+                    icon: Icon(isPlaying
+                        ? Icons.pause_circle_filled
+                        : Icons.play_circle_filled),
+                    onPressed: _playPauseAudio,
+                  ),
+                  IconButton(
+                    iconSize: 32,
+                    icon: const Icon(Icons.forward_10),
+                    onPressed: _fastForward,
+                  ),
+                  IconButton(
+                    iconSize: 32,
+                    icon: const Icon(Icons.stop),
+                    onPressed: _stopAudio,
+                  ),
+                ],
+              ),
+            )
+          : null,
     );
   }
 }
