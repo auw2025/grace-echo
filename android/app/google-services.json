@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "687224239821",
+    "project_id": "grace-echo",
+    "storage_bucket": "grace-echo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:687224239821:android:5d9d62ab01244db57d5b84",
+        "android_client_info": {
+          "package_name": "com.example.grace_echo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDf6iWNcQUV0onI6FpIsgr34lezhzk1vuM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

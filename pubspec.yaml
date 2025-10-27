@@ -1,0 +1,31 @@
+name: grace_echo
+description: A Catholic app with passages and audio playback
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=2.19.0 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+
+  # Firebase packages
+  firebase_core: ^4.2.0
+  cloud_firestore: ^6.0.3
+  firebase_storage: ^13.0.3
+
+  # Audio playback and recording
+  audioplayers: ^6.5.1
+  flutter_sound: ^9.2.13
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+# You can include any additional assets (e.g., icons, fonts, etc.)
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
