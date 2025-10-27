@@ -43,7 +43,6 @@ class _PassagePageState extends State<PassagePage> {
 
   @override
   void dispose() {
-    // Always dispose the player when not needed
     _player.dispose();
     super.dispose();
   }
@@ -92,47 +91,44 @@ class _PassagePageState extends State<PassagePage> {
       appBar: AppBar(
         title: Text(widget.passage.title),
       ),
+      // Body contains the text content scrollable
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                widget.passage.content,
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 20),
-              // Audio control buttons (icon-only)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  IconButton(
-                    iconSize: 32,
-                    icon: const Icon(Icons.replay_10),
-                    onPressed: _rewind,
-                  ),
-                  IconButton(
-                    iconSize: 48,
-                    icon: Icon(isPlaying
-                        ? Icons.pause_circle_filled
-                        : Icons.play_circle_filled),
-                    onPressed: _playPauseAudio,
-                  ),
-                  IconButton(
-                    iconSize: 32,
-                    icon: const Icon(Icons.forward_10),
-                    onPressed: _fastForward,
-                  ),
-                  IconButton(
-                    iconSize: 32,
-                    icon: const Icon(Icons.stop),
-                    onPressed: _stopAudio,
-                  ),
-                ],
-              ),
-            ],
-          ),
+        padding: const EdgeInsets.all(16.0),
+        child: Text(
+          widget.passage.content,
+          style: const TextStyle(fontSize: 16),
+        ),
+      ),
+      // Fixed audio control buttons at the bottom
+      bottomNavigationBar: Container(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            IconButton(
+              iconSize: 32,
+              icon: const Icon(Icons.replay_10),
+              onPressed: _rewind,
+            ),
+            IconButton(
+              iconSize: 48,
+              icon: Icon(isPlaying
+                  ? Icons.pause_circle_filled
+                  : Icons.play_circle_filled),
+              onPressed: _playPauseAudio,
+            ),
+            IconButton(
+              iconSize: 32,
+              icon: const Icon(Icons.forward_10),
+              onPressed: _fastForward,
+            ),
+            IconButton(
+              iconSize: 32,
+              icon: const Icon(Icons.stop),
+              onPressed: _stopAudio,
+            ),
+          ],
         ),
       ),
     );
