@@ -48,7 +48,6 @@ class _HomePageState extends State<HomePage> {
                   decoration: const BoxDecoration(
                     border: Border(
                       top: BorderSide(color: Color(0xFF003153)),
-                      bottom: BorderSide(color: Color(0xFF003153)),
                     ),
                   ),
                   child: ListTile(

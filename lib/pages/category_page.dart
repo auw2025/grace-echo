@@ -29,7 +29,7 @@ class _CategoryPageState extends State<CategoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Category: ${widget.categoryName}'),
+        title: Text('${widget.categoryName}'),
       ),
       body: FutureBuilder<List<Passage>>(
         future: _passagesFuture,
@@ -52,7 +52,6 @@ class _CategoryPageState extends State<CategoryPage> {
                   decoration: const BoxDecoration(
                     border: Border(
                       top: BorderSide(color: Color(0xFF003153)),
-                      bottom: BorderSide(color: Color(0xFF003153)),
                     ),
                   ),
                   child: ListTile(
