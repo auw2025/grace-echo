@@ -92,44 +92,47 @@ class _PassagePageState extends State<PassagePage> {
       appBar: AppBar(
         title: Text(widget.passage.title),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Text(
-              widget.passage.content,
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 20),
-            // Audio control buttons (icon-only)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                IconButton(
-                  iconSize: 32,
-                  icon: const Icon(Icons.replay_10),
-                  onPressed: _rewind,
-                ),
-                IconButton(
-                  iconSize: 48,
-                  icon: Icon(isPlaying
-                      ? Icons.pause_circle_filled
-                      : Icons.play_circle_filled),
-                  onPressed: _playPauseAudio,
-                ),
-                IconButton(
-                  iconSize: 32,
-                  icon: const Icon(Icons.forward_10),
-                  onPressed: _fastForward,
-                ),
-                IconButton(
-                  iconSize: 32,
-                  icon: const Icon(Icons.stop),
-                  onPressed: _stopAudio,
-                ),
-              ],
-            ),
-          ],
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                widget.passage.content,
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 20),
+              // Audio control buttons (icon-only)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  IconButton(
+                    iconSize: 32,
+                    icon: const Icon(Icons.replay_10),
+                    onPressed: _rewind,
+                  ),
+                  IconButton(
+                    iconSize: 48,
+                    icon: Icon(isPlaying
+                        ? Icons.pause_circle_filled
+                        : Icons.play_circle_filled),
+                    onPressed: _playPauseAudio,
+                  ),
+                  IconButton(
+                    iconSize: 32,
+                    icon: const Icon(Icons.forward_10),
+                    onPressed: _fastForward,
+                  ),
+                  IconButton(
+                    iconSize: 32,
+                    icon: const Icon(Icons.stop),
+                    onPressed: _stopAudio,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
