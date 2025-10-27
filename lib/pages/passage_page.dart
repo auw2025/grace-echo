@@ -14,14 +14,41 @@ class PassagePage extends StatefulWidget {
 class _PassagePageState extends State<PassagePage> {
   final AudioPlayer _player = AudioPlayer();
   bool isPlaying = false;
+  Duration currentPosition = Duration.zero;
+  Duration totalDuration = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen for audio duration changes
+    _player.onDurationChanged.listen((duration) {
+      setState(() {
+        totalDuration = duration;
+      });
+    });
+    // Listen for position changes
+    _player.onPositionChanged.listen((position) {
+      setState(() {
+        currentPosition = position;
+      });
+    });
+    // Optionally, handle audio completion
+    _player.onPlayerComplete.listen((event) {
+      setState(() {
+        isPlaying = false;
+        currentPosition = Duration.zero;
+      });
+    });
+  }
 
   @override
   void dispose() {
-    _player.stop();
+    // Always dispose the player when not needed
+    _player.dispose();
     super.dispose();
   }
 
-  Future<void> _playAudio() async {
+  Future<void> _playPauseAudio() async {
     if (!isPlaying) {
       await _player.play(UrlSource(widget.passage.audioUrl));
       setState(() {
@@ -33,6 +60,30 @@ class _PassagePageState extends State<PassagePage> {
         isPlaying = false;
       });
     }
+  }
+
+  Future<void> _stopAudio() async {
+    await _player.stop();
+    setState(() {
+      isPlaying = false;
+      currentPosition = Duration.zero;
+    });
+  }
+
+  Future<void> _rewind() async {
+    Duration newPosition = currentPosition - const Duration(seconds: 10);
+    if (newPosition < Duration.zero) {
+      newPosition = Duration.zero;
+    }
+    await _player.seek(newPosition);
+  }
+
+  Future<void> _fastForward() async {
+    Duration newPosition = currentPosition + const Duration(seconds: 10);
+    if (newPosition > totalDuration) {
+      newPosition = totalDuration;
+    }
+    await _player.seek(newPosition);
   }
 
   @override
@@ -50,10 +101,33 @@ class _PassagePageState extends State<PassagePage> {
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 20),
-            ElevatedButton.icon(
-              icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
-              label: Text(isPlaying ? 'Pause Audio' : 'Play Audio'),
-              onPressed: _playAudio,
+            // Audio control buttons (icon-only)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                IconButton(
+                  iconSize: 32,
+                  icon: const Icon(Icons.replay_10),
+                  onPressed: _rewind,
+                ),
+                IconButton(
+                  iconSize: 48,
+                  icon: Icon(isPlaying
+                      ? Icons.pause_circle_filled
+                      : Icons.play_circle_filled),
+                  onPressed: _playPauseAudio,
+                ),
+                IconButton(
+                  iconSize: 32,
+                  icon: const Icon(Icons.forward_10),
+                  onPressed: _fastForward,
+                ),
+                IconButton(
+                  iconSize: 32,
+                  icon: const Icon(Icons.stop),
+                  onPressed: _stopAudio,
+                ),
+              ],
             ),
           ],
         ),
