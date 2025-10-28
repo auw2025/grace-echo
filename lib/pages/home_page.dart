@@ -71,12 +71,7 @@ class _HomePageState extends State<HomePage> {
           }
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.mic),
-        onPressed: () {
-          Navigator.pushNamed(context, '/record');
-        },
-      ),
+      // Removed the floatingActionButton that contained the microphone record button.
     );
   }
 }
