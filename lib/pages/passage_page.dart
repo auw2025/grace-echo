@@ -165,7 +165,9 @@ class _PassagePageState extends State<PassagePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.passage.title),
+        title: Text(
+          '${widget.passage.category}: ${widget.passage.title}',
+        ),
       ),
       body: SingleChildScrollView(
         child: contentWidget,
