@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/passage_model.dart';
+import '../providers/settings_provider.dart';
 
 class PassagePage extends StatefulWidget {
   final Passage passage;
@@ -21,13 +23,11 @@ class _PassagePageState extends State<PassagePage> {
   // State variable for font size adjustment.
   double _fontSize = 16.0;
 
-  // State variable for high contrast mode.
-  bool _isHighContrast = false;
-
   @override
   void initState() {
     super.initState();
-    _loadFontSize(); // Load the saved font size.
+    _loadFontSize();
+
     if (widget.passage.audioUrl.isNotEmpty) {
       _player.onDurationChanged.listen((duration) {
         setState(() {
@@ -128,14 +128,10 @@ class _PassagePageState extends State<PassagePage> {
     _saveFontSize();
   }
 
-  void _toggleHighContrast(bool value) {
-    setState(() {
-      _isHighContrast = value;
-    });
-  }
-
-  /// Show accessibility options (font size + high-contrast toggle).
   void _showAccessibilityOptionsSheet() {
+    // Retrieve the global SettingsProvider
+    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+
     showModalBottomSheet(
       context: context,
       builder: (context) {
@@ -189,14 +185,18 @@ class _PassagePageState extends State<PassagePage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "高對比度",
+                          "高對比模式",
                           style: TextStyle(fontSize: _fontSize),
                         ),
-                        Switch(
-                          value: _isHighContrast,
-                          onChanged: (value) {
-                            _toggleHighContrast(value);
-                            setModalState(() {});
+                        Consumer<SettingsProvider>(
+                          builder: (context, settings, child) {
+                            return Switch(
+                              value: settings.isHighContrast,
+                              onChanged: (value) {
+                                settingsProvider.toggleHighContrast(value);
+                                setModalState(() {});
+                              },
+                            );
                           },
                         ),
                       ],
@@ -212,63 +212,59 @@ class _PassagePageState extends State<PassagePage> {
   }
 
   // Returns a TextStyle based on the current state.
-  TextStyle _getTextStyle() {
+  TextStyle _getTextStyle(bool isHighContrast) {
     return TextStyle(
       fontSize: _fontSize,
-      color: _isHighContrast ? Colors.white : Colors.black87,
+      color: isHighContrast ? Colors.white : Colors.black87,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Adjust the background color for a more visible high contrast effect.
-    final Color contentBackgroundColor =
-        _isHighContrast ? Colors.black : Theme.of(context).scaffoldBackgroundColor;
+    final settings = Provider.of<SettingsProvider>(context);
+    final bool isHighContrast = settings.isHighContrast;
 
-    // A different app bar styling for high contrast.
+    // Adjust the background color based on the global setting.
+    final Color contentBackgroundColor =
+        isHighContrast ? Colors.black : Theme.of(context).scaffoldBackgroundColor;
+
     final AppBar appBar = AppBar(
-      backgroundColor: _isHighContrast ? Colors.black : null,
+      backgroundColor: isHighContrast ? Colors.black : null,
       title: Text(
         '${widget.passage.category}: ${widget.passage.title}',
         style: TextStyle(
-          color: _isHighContrast ? Colors.white : Colors.black,
-        ),
+        color: isHighContrast ? Colors.white : Colors.black87,
+      ),
       ),
       iconTheme: IconThemeData(
-        color: _isHighContrast ? Colors.white : Colors.black,
+        color: isHighContrast ? Colors.white : Colors.black87,
       ),
     );
 
-    // This regular expression finds patterns like "1:2" followed by some text.
-    final verseRegExp =
-        RegExp(r'(\d+:\d+)\s+(.*?)(?=(\d+:\d+)|$)', dotAll: true);
+    final verseRegExp = RegExp(r'(\d+:\d+)\s+(.*?)(?=(\d+:\d+)|$)', dotAll: true);
     final matches = verseRegExp.allMatches(widget.passage.content).toList();
 
     List<Widget> contentWidgets = [];
 
     if (matches.isNotEmpty) {
-      // Find the position where the first verse marker occurs.
       final firstMatchText = matches.first.group(0);
       int firstMatchIndex = widget.passage.content.indexOf(firstMatchText!);
 
-      // If there is text before the first verse marker, add it as a plain paragraph.
       if (firstMatchIndex > 0) {
-        String headerText =
-            widget.passage.content.substring(0, firstMatchIndex).trim();
+        String headerText = widget.passage.content.substring(0, firstMatchIndex).trim();
         if (headerText.isNotEmpty) {
           contentWidgets.add(
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Text(
                 headerText,
-                style: _getTextStyle(),
+                style: _getTextStyle(isHighContrast),
               ),
             ),
           );
         }
       }
 
-      // Build the list of verse rows.
       List<Widget> verseWidgets = [];
       for (var match in matches) {
         var verseNumber = match.group(1)?.trim() ?? "";
@@ -279,26 +275,23 @@ class _PassagePageState extends State<PassagePage> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Left part: verse number with a fixed width.
                 Container(
                   width: 60,
                   child: Text(
                     verseNumber,
-                    style: _getTextStyle().copyWith(fontWeight: FontWeight.bold),
+                    style: _getTextStyle(isHighContrast).copyWith(fontWeight: FontWeight.bold),
                   ),
                 ),
-                // Vertical divider line.
                 Container(
                   width: 1,
                   height: 50,
-                  color: _isHighContrast ? Colors.white : Colors.grey,
+                  color: isHighContrast ? Colors.white : Colors.grey,
                   margin: const EdgeInsets.symmetric(horizontal: 8.0),
                 ),
-                // Right part: verse text.
                 Expanded(
                   child: Text(
                     verseText,
-                    style: _getTextStyle(),
+                    style: _getTextStyle(isHighContrast),
                   ),
                 ),
               ],
@@ -306,7 +299,6 @@ class _PassagePageState extends State<PassagePage> {
           ),
         );
       }
-      // Wrap all verses in a column.
       contentWidgets.add(
         Padding(
           padding: const EdgeInsets.all(16.0),
@@ -317,13 +309,12 @@ class _PassagePageState extends State<PassagePage> {
         ),
       );
     } else {
-      // If no verse markers are detected, simply show the whole passage.
       contentWidgets.add(
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: Text(
             widget.passage.content,
-            style: _getTextStyle(),
+            style: _getTextStyle(isHighContrast),
           ),
         ),
       );
@@ -343,43 +334,51 @@ class _PassagePageState extends State<PassagePage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAccessibilityOptionsSheet,
-        backgroundColor: _isHighContrast ? Colors.black : null,
+        backgroundColor: isHighContrast ? Colors.black : null,
         child: Icon(
           Icons.accessibility,
-          color: _isHighContrast ? Colors.white : Colors.blueAccent,
+          color: isHighContrast ? Colors.white : Colors.blueAccent,
         ),
       ),
       bottomNavigationBar: widget.passage.audioUrl.isNotEmpty
           ? Container(
-              color: _isHighContrast ? Colors.black : Theme.of(context).scaffoldBackgroundColor,
+              color: isHighContrast ? Colors.black : Theme.of(context).scaffoldBackgroundColor,
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   IconButton(
                     iconSize: 32,
-                    icon: Icon(Icons.replay_10,
-                        color: _isHighContrast ? Colors.white : Colors.black87),
+                    icon: Icon(
+                      Icons.replay_10,
+                      color: isHighContrast ? Colors.white : Colors.black87,
+                    ),
                     onPressed: _rewind,
                   ),
                   IconButton(
                     iconSize: 48,
-                    icon: Icon(isPlaying
-                        ? Icons.pause_circle_filled
-                        : Icons.play_circle_filled,
-                        color: _isHighContrast ? Colors.white : Colors.black87),
+                    icon: Icon(
+                      isPlaying
+                          ? Icons.pause_circle_filled
+                          : Icons.play_circle_filled,
+                      color: isHighContrast ? Colors.white : Colors.black87,
+                    ),
                     onPressed: _playPauseAudio,
                   ),
                   IconButton(
                     iconSize: 32,
-                    icon: Icon(Icons.forward_10,
-                        color: _isHighContrast ? Colors.white : Colors.black87),
+                    icon: Icon(
+                      Icons.forward_10,
+                      color: isHighContrast ? Colors.white : Colors.black87,
+                    ),
                     onPressed: _fastForward,
                   ),
                   IconButton(
                     iconSize: 32,
-                    icon: Icon(Icons.stop,
-                        color: _isHighContrast ? Colors.white : Colors.black87),
+                    icon: Icon(
+                      Icons.stop,
+                      color: isHighContrast ? Colors.white : Colors.black87,
+                    ),
                     onPressed: _stopAudio,
                   ),
                 ],

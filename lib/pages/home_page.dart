@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:grace_echo/services/firebase_service.dart';
-import 'package:grace_echo/models/category_model.dart'; // Create this.
+import 'package:grace_echo/models/category_model.dart'; // Make sure this file exists.
 import 'category_page.dart';
+import 'package:grace_echo/providers/settings_provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -54,26 +56,48 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Access the global high contrast setting.
+    final settings = Provider.of<SettingsProvider>(context);
+    final bool isHighContrast = settings.isHighContrast;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Grace Abounds'),
+        backgroundColor: isHighContrast ? Colors.black : null,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: Icon(Icons.refresh, color: isHighContrast ? Colors.white : null),
             onPressed: _refreshData,
             tooltip: 'Refresh',
           ),
         ],
       ),
+      backgroundColor: isHighContrast ? Colors.black : Colors.white,
       body: FutureBuilder<List<Category>>(
         future: _categoriesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  isHighContrast ? Colors.white : Colors.black,
+                ),
+              ),
+            );
           } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(
+              child: Text(
+                'Error: ${snapshot.error}',
+                style: TextStyle(color: isHighContrast ? Colors.white : Colors.black),
+              ),
+            );
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No categories available'));
+            return Center(
+              child: Text(
+                'No categories available',
+                style: TextStyle(color: isHighContrast ? Colors.white : Colors.black),
+              ),
+            );
           } else {
             final categories = snapshot.data!;
             return ListView.builder(
@@ -81,16 +105,25 @@ class _HomePageState extends State<HomePage> {
               itemBuilder: (context, index) {
                 final category = categories[index];
                 return Container(
-                  margin: const EdgeInsets.symmetric(
-                      horizontal: 8.0, vertical: 4.0),
+                  margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
                   decoration: const BoxDecoration(
                     border: Border(
                       top: BorderSide(color: Color(0xFF003153)),
                     ),
                   ),
                   child: ListTile(
-                    title: Text(category.name),
-                    subtitle: Text("(${category.passageCount} 章)"),
+                    title: Text(
+                      category.name,
+                      style: TextStyle(
+                        color: isHighContrast ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    subtitle: Text(
+                      "(${category.passageCount} 章)",
+                      style: TextStyle(
+                        color: isHighContrast ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
                     onTap: () {
                       // Navigate to the CategoryPage for this specific category.
                       Navigator.push(
@@ -109,7 +142,6 @@ class _HomePageState extends State<HomePage> {
           }
         },
       ),
-      // Removed the floatingActionButton that contained the microphone record button.
     );
   }
 }
