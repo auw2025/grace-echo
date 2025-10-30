@@ -20,11 +20,25 @@ class _HomePageState extends State<HomePage> {
     _categoriesFuture = _firebaseService.getCategories();
   }
 
+  void _refreshData() {
+    setState(() {
+      // Re-fetch the categories from the Firebase service.
+      _categoriesFuture = _firebaseService.getCategories();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Grace Abounds'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _refreshData,
+            tooltip: 'Refresh',
+          ),
+        ],
       ),
       body: FutureBuilder<List<Category>>(
         future: _categoriesFuture,
@@ -37,7 +51,6 @@ class _HomePageState extends State<HomePage> {
             return const Center(child: Text('No categories available'));
           } else {
             final categories = snapshot.data!;
-
             return ListView.builder(
               itemCount: categories.length,
               itemBuilder: (context, index) {

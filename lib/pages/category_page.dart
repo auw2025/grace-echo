@@ -25,11 +25,26 @@ class _CategoryPageState extends State<CategoryPage> {
         _firebaseService.getPassagesForCategory(widget.categoryName);
   }
 
+  void _refreshData() {
+    setState(() {
+      // Re-fetch passages for the given category.
+      _passagesFuture =
+          _firebaseService.getPassagesForCategory(widget.categoryName);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('${widget.categoryName}'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _refreshData,
+            tooltip: 'Refresh',
+          ),
+        ],
       ),
       body: FutureBuilder<List<Passage>>(
         future: _passagesFuture,
