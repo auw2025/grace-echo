@@ -346,7 +346,7 @@ class _PassagePageState extends State<PassagePage> {
         backgroundColor: _isHighContrast ? Colors.black : null,
         child: Icon(
           Icons.accessibility,
-          color: _isHighContrast ? Colors.white : Colors.white,
+          color: _isHighContrast ? Colors.white : Colors.blueAccent,
         ),
       ),
       bottomNavigationBar: widget.passage.audioUrl.isNotEmpty
