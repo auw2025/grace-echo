@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:grace_echo/services/firebase_service.dart';
-import 'package:grace_echo/models/category_model.dart'; // Make sure this file exists.
+import 'package:grace_echo/models/category_model.dart';
 import 'category_page.dart';
 import 'package:grace_echo/providers/settings_provider.dart';
 
@@ -52,6 +52,52 @@ class _HomePageState extends State<HomePage> {
         return categories;
       });
     });
+  }
+
+  /// Shows a bottom sheet with accessibility options (only high contrast switch).
+  void _showAccessibilityOptionsSheet() {
+    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // High contrast mode toggle row.
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "高對比模式",
+                          style: TextStyle(fontSize: 16.0),
+                        ),
+                        Consumer<SettingsProvider>(
+                          builder: (context, settings, child) {
+                            return Switch(
+                              value: settings.isHighContrast,
+                              onChanged: (value) {
+                                settingsProvider.toggleHighContrast(value);
+                                setModalState(() {});
+                              },
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -141,6 +187,14 @@ class _HomePageState extends State<HomePage> {
             );
           }
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAccessibilityOptionsSheet,
+        backgroundColor: isHighContrast ? Colors.black : null,
+        child: Icon(
+          Icons.accessibility,
+          color: isHighContrast ? Colors.white : Colors.blueAccent,
+        ),
       ),
     );
   }

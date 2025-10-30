@@ -32,6 +32,52 @@ class _CategoryPageState extends State<CategoryPage> {
     });
   }
 
+  /// Shows a bottom sheet with accessibility options (only high contrast switch).
+  void _showAccessibilityOptionsSheet() {
+    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // High contrast mode toggle row.
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "高對比模式",
+                          style: TextStyle(fontSize: 16.0),
+                        ),
+                        Consumer<SettingsProvider>(
+                          builder: (context, settings, child) {
+                            return Switch(
+                              value: settings.isHighContrast,
+                              onChanged: (value) {
+                                settingsProvider.toggleHighContrast(value);
+                                setModalState(() {});
+                              },
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Access the global high contrast setting.
@@ -110,6 +156,14 @@ class _CategoryPageState extends State<CategoryPage> {
             );
           }
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAccessibilityOptionsSheet,
+        backgroundColor: isHighContrast ? Colors.black : null,
+        child: Icon(
+          Icons.accessibility,
+          color: isHighContrast ? Colors.white : Colors.blueAccent,
+        ),
       ),
     );
   }
