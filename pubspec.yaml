@@ -19,6 +19,7 @@ dependencies:
   # Audio playback and recording
   audioplayers: ^6.5.1
   flutter_sound: ^9.2.13
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:

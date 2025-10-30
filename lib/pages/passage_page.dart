@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/passage_model.dart';
 
 class PassagePage extends StatefulWidget {
@@ -23,6 +24,7 @@ class _PassagePageState extends State<PassagePage> {
   @override
   void initState() {
     super.initState();
+    _loadFontSize(); // Load the saved font size.
     if (widget.passage.audioUrl.isNotEmpty) {
       _player.onDurationChanged.listen((duration) {
         setState(() {
@@ -95,50 +97,73 @@ class _PassagePageState extends State<PassagePage> {
     await _player.seek(newPosition);
   }
 
+  /// Loads the saved font size from shared preferences.
+  Future<void> _loadFontSize() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _fontSize = prefs.getDouble('passageFontSize') ?? 16.0;
+    });
+  }
+
+  /// Saves the current font size to shared preferences.
+  Future<void> _saveFontSize() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('passageFontSize', _fontSize);
+  }
+
   void _increaseFontSize() {
     setState(() {
       _fontSize += 2;
     });
+    _saveFontSize();
   }
 
   void _decreaseFontSize() {
     setState(() {
-      // Set a minimum font size.
       _fontSize = _fontSize > 10 ? _fontSize - 2 : _fontSize;
     });
+    _saveFontSize();
   }
 
   void _showFontSizeAdjustmentSheet() {
     showModalBottomSheet(
       context: context,
       builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                IconButton(
-                  iconSize: 32,
-                  icon: const Icon(Icons.remove),
-                  onPressed: () {
-                    _decreaseFontSize();
-                  },
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    IconButton(
+                      iconSize: 32,
+                      icon: const Icon(Icons.remove),
+                      onPressed: () {
+                        _decreaseFontSize();
+                        // Rebuild bottom sheet's UI immediately:
+                        setModalState(() {});
+                      },
+                    ),
+                    Text(
+                      '${_fontSize.toStringAsFixed(0)}',
+                      style: TextStyle(fontSize: _fontSize),
+                    ),
+                    IconButton(
+                      iconSize: 32,
+                      icon: const Icon(Icons.add),
+                      onPressed: () {
+                        _increaseFontSize();
+                        // Rebuild bottom sheet's UI immediately:
+                        setModalState(() {});
+                      },
+                    ),
+                  ],
                 ),
-                Text(
-                  '${_fontSize.toStringAsFixed(0)}',
-                  style: TextStyle(fontSize: _fontSize),
-                ),
-                IconButton(
-                  iconSize: 32,
-                  icon: const Icon(Icons.add),
-                  onPressed: () {
-                    _increaseFontSize();
-                  },
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -147,7 +172,8 @@ class _PassagePageState extends State<PassagePage> {
   @override
   Widget build(BuildContext context) {
     // This regular expression finds patterns like "1:2" followed by some text.
-    final verseRegExp = RegExp(r'(\d+:\d+)\s+(.*?)(?=(\d+:\d+)|$)', dotAll: true);
+    final verseRegExp =
+        RegExp(r'(\d+:\d+)\s+(.*?)(?=(\d+:\d+)|$)', dotAll: true);
     final matches = verseRegExp.allMatches(widget.passage.content).toList();
 
     List<Widget> contentWidgets = [];
@@ -159,7 +185,8 @@ class _PassagePageState extends State<PassagePage> {
 
       // If there is text before the first verse marker, add it as a plain paragraph.
       if (firstMatchIndex > 0) {
-        String headerText = widget.passage.content.substring(0, firstMatchIndex).trim();
+        String headerText =
+            widget.passage.content.substring(0, firstMatchIndex).trim();
         if (headerText.isNotEmpty) {
           contentWidgets.add(
             Padding(
@@ -239,7 +266,8 @@ class _PassagePageState extends State<PassagePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.passage.category}: ${widget.passage.title}'),
+        title:
+            Text('${widget.passage.category}: ${widget.passage.title}'),
       ),
       body: SingleChildScrollView(
         child: Column(
