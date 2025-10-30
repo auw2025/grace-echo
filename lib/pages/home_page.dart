@@ -12,18 +12,43 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final FirebaseService _firebaseService = FirebaseService();
-  late Future<List<Category>> _categoriesFuture;
+
+  // Variables for caching:
+  Future<List<Category>>? _categoriesFuture;
+  List<Category>? _categoriesCache;
+  DateTime? _lastFetchTime;
+  final Duration cacheDuration = const Duration(minutes: 10);
+
+  /// Fetch categories using cache logic.
+  Future<List<Category>> getCategoriesWithCache() async {
+    // If we have cached data and the cache is still valid, return it.
+    if (_categoriesCache != null &&
+        _lastFetchTime != null &&
+        DateTime.now().difference(_lastFetchTime!) < cacheDuration) {
+      return _categoriesCache!;
+    }
+    // Otherwise, fetch from Firebase.
+    List<Category> categories = await _firebaseService.getCategories();
+    _categoriesCache = categories;
+    _lastFetchTime = DateTime.now();
+    return categories;
+  }
 
   @override
   void initState() {
     super.initState();
-    _categoriesFuture = _firebaseService.getCategories();
+    // Get categories using the cache logic.
+    _categoriesFuture = getCategoriesWithCache();
   }
 
   void _refreshData() {
+    // When refreshing, we force a fetch from Firebase and update the cache.
     setState(() {
-      // Re-fetch the categories from the Firebase service.
-      _categoriesFuture = _firebaseService.getCategories();
+      _categoriesFuture = _firebaseService.getCategories().then((categories) {
+        _categoriesCache = categories;
+        _lastFetchTime = DateTime.now();
+        return categories;
+      });
     });
   }
 
@@ -56,8 +81,8 @@ class _HomePageState extends State<HomePage> {
               itemBuilder: (context, index) {
                 final category = categories[index];
                 return Container(
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                  margin: const EdgeInsets.symmetric(
+                      horizontal: 8.0, vertical: 4.0),
                   decoration: const BoxDecoration(
                     border: Border(
                       top: BorderSide(color: Color(0xFF003153)),
