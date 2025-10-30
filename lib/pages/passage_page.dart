@@ -17,6 +17,9 @@ class _PassagePageState extends State<PassagePage> {
   Duration currentPosition = Duration.zero;
   Duration totalDuration = Duration.zero;
 
+  // State variable for font size adjustment.
+  double _fontSize = 16.0;
+
   @override
   void initState() {
     super.initState();
@@ -92,6 +95,55 @@ class _PassagePageState extends State<PassagePage> {
     await _player.seek(newPosition);
   }
 
+  void _increaseFontSize() {
+    setState(() {
+      _fontSize += 2;
+    });
+  }
+
+  void _decreaseFontSize() {
+    setState(() {
+      // Set a minimum font size.
+      _fontSize = _fontSize > 10 ? _fontSize - 2 : _fontSize;
+    });
+  }
+
+  void _showFontSizeAdjustmentSheet() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                IconButton(
+                  iconSize: 32,
+                  icon: const Icon(Icons.remove),
+                  onPressed: () {
+                    _decreaseFontSize();
+                  },
+                ),
+                Text(
+                  '${_fontSize.toStringAsFixed(0)}',
+                  style: TextStyle(fontSize: _fontSize),
+                ),
+                IconButton(
+                  iconSize: 32,
+                  icon: const Icon(Icons.add),
+                  onPressed: () {
+                    _increaseFontSize();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // This regular expression finds patterns like "1:2" followed by some text.
@@ -114,7 +166,7 @@ class _PassagePageState extends State<PassagePage> {
               padding: const EdgeInsets.all(16.0),
               child: Text(
                 headerText,
-                style: const TextStyle(fontSize: 16),
+                style: TextStyle(fontSize: _fontSize),
               ),
             ),
           );
@@ -137,7 +189,10 @@ class _PassagePageState extends State<PassagePage> {
                   width: 60,
                   child: Text(
                     verseNumber,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: _fontSize,
+                    ),
                   ),
                 ),
                 // Vertical divider line.
@@ -151,7 +206,7 @@ class _PassagePageState extends State<PassagePage> {
                 Expanded(
                   child: Text(
                     verseText,
-                    style: const TextStyle(fontSize: 16),
+                    style: TextStyle(fontSize: _fontSize),
                   ),
                 ),
               ],
@@ -176,7 +231,7 @@ class _PassagePageState extends State<PassagePage> {
           padding: const EdgeInsets.all(16.0),
           child: Text(
             widget.passage.content,
-            style: const TextStyle(fontSize: 16),
+            style: TextStyle(fontSize: _fontSize),
           ),
         ),
       );
@@ -191,6 +246,10 @@ class _PassagePageState extends State<PassagePage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: contentWidgets,
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showFontSizeAdjustmentSheet,
+        child: const Icon(Icons.format_size),
       ),
       bottomNavigationBar: widget.passage.audioUrl.isNotEmpty
           ? Container(
