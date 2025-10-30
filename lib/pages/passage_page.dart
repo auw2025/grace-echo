@@ -21,6 +21,9 @@ class _PassagePageState extends State<PassagePage> {
   // State variable for font size adjustment.
   double _fontSize = 16.0;
 
+  // State variable for high contrast mode.
+  bool _isHighContrast = false;
+
   @override
   void initState() {
     super.initState();
@@ -125,7 +128,14 @@ class _PassagePageState extends State<PassagePage> {
     _saveFontSize();
   }
 
-  void _showFontSizeAdjustmentSheet() {
+  void _toggleHighContrast(bool value) {
+    setState(() {
+      _isHighContrast = value;
+    });
+  }
+
+  /// Show accessibility options (font size + high-contrast toggle).
+  void _showAccessibilityOptionsSheet() {
     showModalBottomSheet(
       context: context,
       builder: (context) {
@@ -134,30 +144,62 @@ class _PassagePageState extends State<PassagePage> {
             return SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconButton(
-                      iconSize: 32,
-                      icon: const Icon(Icons.remove),
-                      onPressed: () {
-                        _decreaseFontSize();
-                        // Rebuild bottom sheet's UI immediately:
-                        setModalState(() {});
-                      },
+                    // Font size adjustment row with a label.
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Label for font size.
+                        Text(
+                          "字體大小",
+                          style: TextStyle(fontSize: _fontSize),
+                        ),
+                        // Font size adjustment buttons.
+                        Row(
+                          children: [
+                            IconButton(
+                              iconSize: 32,
+                              icon: const Icon(Icons.remove),
+                              onPressed: () {
+                                _decreaseFontSize();
+                                setModalState(() {});
+                              },
+                            ),
+                            Text(
+                              '${_fontSize.toStringAsFixed(0)}',
+                              style: TextStyle(fontSize: _fontSize),
+                            ),
+                            IconButton(
+                              iconSize: 32,
+                              icon: const Icon(Icons.add),
+                              onPressed: () {
+                                _increaseFontSize();
+                                setModalState(() {});
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    Text(
-                      '${_fontSize.toStringAsFixed(0)}',
-                      style: TextStyle(fontSize: _fontSize),
-                    ),
-                    IconButton(
-                      iconSize: 32,
-                      icon: const Icon(Icons.add),
-                      onPressed: () {
-                        _increaseFontSize();
-                        // Rebuild bottom sheet's UI immediately:
-                        setModalState(() {});
-                      },
+                    const SizedBox(height: 16),
+                    // High contrast mode toggle row.
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "高對比度",
+                          style: TextStyle(fontSize: _fontSize),
+                        ),
+                        Switch(
+                          value: _isHighContrast,
+                          onChanged: (value) {
+                            _toggleHighContrast(value);
+                            setModalState(() {});
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -169,8 +211,34 @@ class _PassagePageState extends State<PassagePage> {
     );
   }
 
+  // Returns a TextStyle based on the current state.
+  TextStyle _getTextStyle() {
+    return TextStyle(
+      fontSize: _fontSize,
+      color: _isHighContrast ? Colors.white : Colors.black87,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Adjust the background color for a more visible high contrast effect.
+    final Color contentBackgroundColor =
+        _isHighContrast ? Colors.black : Theme.of(context).scaffoldBackgroundColor;
+
+    // A different app bar styling for high contrast.
+    final AppBar appBar = AppBar(
+      backgroundColor: _isHighContrast ? Colors.black : null,
+      title: Text(
+        '${widget.passage.category}: ${widget.passage.title}',
+        style: TextStyle(
+          color: _isHighContrast ? Colors.white : Colors.white,
+        ),
+      ),
+      iconTheme: IconThemeData(
+        color: _isHighContrast ? Colors.white : Colors.white,
+      ),
+    );
+
     // This regular expression finds patterns like "1:2" followed by some text.
     final verseRegExp =
         RegExp(r'(\d+:\d+)\s+(.*?)(?=(\d+:\d+)|$)', dotAll: true);
@@ -193,14 +261,14 @@ class _PassagePageState extends State<PassagePage> {
               padding: const EdgeInsets.all(16.0),
               child: Text(
                 headerText,
-                style: TextStyle(fontSize: _fontSize),
+                style: _getTextStyle(),
               ),
             ),
           );
         }
       }
 
-      // Build the list of verses rows.
+      // Build the list of verse rows.
       List<Widget> verseWidgets = [];
       for (var match in matches) {
         var verseNumber = match.group(1)?.trim() ?? "";
@@ -216,24 +284,21 @@ class _PassagePageState extends State<PassagePage> {
                   width: 60,
                   child: Text(
                     verseNumber,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: _fontSize,
-                    ),
+                    style: _getTextStyle().copyWith(fontWeight: FontWeight.bold),
                   ),
                 ),
                 // Vertical divider line.
                 Container(
                   width: 1,
                   height: 50,
-                  color: Colors.grey,
+                  color: _isHighContrast ? Colors.white : Colors.grey,
                   margin: const EdgeInsets.symmetric(horizontal: 8.0),
                 ),
                 // Right part: verse text.
                 Expanded(
                   child: Text(
                     verseText,
-                    style: TextStyle(fontSize: _fontSize),
+                    style: _getTextStyle(),
                   ),
                 ),
               ],
@@ -258,54 +323,63 @@ class _PassagePageState extends State<PassagePage> {
           padding: const EdgeInsets.all(16.0),
           child: Text(
             widget.passage.content,
-            style: TextStyle(fontSize: _fontSize),
+            style: _getTextStyle(),
           ),
         ),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title:
-            Text('${widget.passage.category}: ${widget.passage.title}'),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: contentWidgets,
+      appBar: appBar,
+      backgroundColor: contentBackgroundColor,
+      body: Container(
+        color: contentBackgroundColor,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: contentWidgets,
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showFontSizeAdjustmentSheet,
-        child: const Icon(Icons.format_size),
+        onPressed: _showAccessibilityOptionsSheet,
+        backgroundColor: _isHighContrast ? Colors.black : null,
+        child: Icon(
+          Icons.accessibility,
+          color: _isHighContrast ? Colors.white : Colors.white,
+        ),
       ),
       bottomNavigationBar: widget.passage.audioUrl.isNotEmpty
           ? Container(
-              color: Theme.of(context).scaffoldBackgroundColor,
+              color: _isHighContrast ? Colors.black : Theme.of(context).scaffoldBackgroundColor,
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   IconButton(
                     iconSize: 32,
-                    icon: const Icon(Icons.replay_10),
+                    icon: Icon(Icons.replay_10,
+                        color: _isHighContrast ? Colors.white : Colors.black87),
                     onPressed: _rewind,
                   ),
                   IconButton(
                     iconSize: 48,
                     icon: Icon(isPlaying
                         ? Icons.pause_circle_filled
-                        : Icons.play_circle_filled),
+                        : Icons.play_circle_filled,
+                        color: _isHighContrast ? Colors.white : Colors.black87),
                     onPressed: _playPauseAudio,
                   ),
                   IconButton(
                     iconSize: 32,
-                    icon: const Icon(Icons.forward_10),
+                    icon: Icon(Icons.forward_10,
+                        color: _isHighContrast ? Colors.white : Colors.black87),
                     onPressed: _fastForward,
                   ),
                   IconButton(
                     iconSize: 32,
-                    icon: const Icon(Icons.stop),
+                    icon: Icon(Icons.stop,
+                        color: _isHighContrast ? Colors.white : Colors.black87),
                     onPressed: _stopAudio,
                   ),
                 ],
