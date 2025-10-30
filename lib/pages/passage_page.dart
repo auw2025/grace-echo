@@ -231,11 +231,11 @@ class _PassagePageState extends State<PassagePage> {
       title: Text(
         '${widget.passage.category}: ${widget.passage.title}',
         style: TextStyle(
-          color: _isHighContrast ? Colors.white : Colors.white,
+          color: _isHighContrast ? Colors.white : Colors.black,
         ),
       ),
       iconTheme: IconThemeData(
-        color: _isHighContrast ? Colors.white : Colors.white,
+        color: _isHighContrast ? Colors.white : Colors.black,
       ),
     );
 
