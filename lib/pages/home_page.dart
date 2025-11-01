@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:grace_echo/services/firebase_service.dart';
-import 'package:grace_echo/models/category_model.dart';
+
+import '../services/firebase_service.dart';
+import '../models/tag_group.dart';
+import '../models/category_model.dart';
 import 'category_page.dart';
-import 'package:grace_echo/providers/settings_provider.dart';
+import '../providers/settings_provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -13,187 +15,194 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final FirebaseService _firebaseService = FirebaseService();
+  final FirebaseService _service = FirebaseService();
 
-  // Variables for caching:
-  Future<List<Category>>? _categoriesFuture;
-  List<Category>? _categoriesCache;
-  DateTime? _lastFetchTime;
-  final Duration cacheDuration = const Duration(minutes: 10);
+  /// --- simple 10-minute cache ------------------------------------------------
+  Future<List<TagGroup>>? _groupsFuture;
+  List<TagGroup>? _groupsCache;
+  DateTime? _lastFetch;
+  final _cacheDuration = const Duration(minutes: 10);
 
-  /// Fetch categories using cache logic.
-  Future<List<Category>> getCategoriesWithCache() async {
-    // If we have cached data and the cache is still valid, return it.
-    if (_categoriesCache != null &&
-        _lastFetchTime != null &&
-        DateTime.now().difference(_lastFetchTime!) < cacheDuration) {
-      return _categoriesCache!;
+  Future<List<TagGroup>> _getGroups() async {
+    if (_groupsCache != null &&
+        _lastFetch != null &&
+        DateTime.now().difference(_lastFetch!) < _cacheDuration) {
+      return _groupsCache!;
     }
-    // Otherwise, fetch from Firebase.
-    List<Category> categories = await _firebaseService.getCategories();
-    _categoriesCache = categories;
-    _lastFetchTime = DateTime.now();
-    return categories;
+
+    final data = await _service.getTagGroups();
+    _groupsCache = data;
+    _lastFetch = DateTime.now();
+    return data;
   }
 
   @override
   void initState() {
     super.initState();
-    // Get categories using the cache logic.
-    _categoriesFuture = getCategoriesWithCache();
+    _groupsFuture = _getGroups();
   }
 
-  void _refreshData() {
-    // When refreshing, we force a fetch from Firebase and update the cache.
+  void _forceRefresh() {
     setState(() {
-      _categoriesFuture = _firebaseService.getCategories().then((categories) {
-        _categoriesCache = categories;
-        _lastFetchTime = DateTime.now();
-        return categories;
+      _groupsFuture = _service.getTagGroups().then((value) {
+        _groupsCache = value;
+        _lastFetch = DateTime.now();
+        return value;
       });
     });
   }
 
-  /// Shows a bottom sheet with accessibility options (only high contrast switch).
-  void _showAccessibilityOptionsSheet() {
-    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
-
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // High contrast mode toggle row.
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "高對比模式",
-                          style: TextStyle(fontSize: 16.0),
-                        ),
-                        Consumer<SettingsProvider>(
-                          builder: (context, settings, child) {
-                            return Switch(
-                              value: settings.isHighContrast,
-                              onChanged: (value) {
-                                settingsProvider.toggleHighContrast(value);
-                                setModalState(() {});
-                              },
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
+  /* ─────────────────────────────  UI  ───────────────────────────── */
 
   @override
   Widget build(BuildContext context) {
-    // Access the global high contrast setting.
-    final settings = Provider.of<SettingsProvider>(context);
-    final bool isHighContrast = settings.isHighContrast;
+    final settings = context.watch<SettingsProvider>();
+    final bool highContrast = settings.isHighContrast;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Grace Abounds'),
-        backgroundColor: isHighContrast ? Colors.black : null,
+        backgroundColor: highContrast ? Colors.black : null,
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh, color: isHighContrast ? Colors.white : null),
-            onPressed: _refreshData,
+            icon: Icon(Icons.refresh,
+                color: highContrast ? Colors.white : null),
             tooltip: 'Refresh',
+            onPressed: _forceRefresh,
           ),
         ],
       ),
-      backgroundColor: isHighContrast ? Colors.black : Colors.white,
-      body: FutureBuilder<List<Category>>(
-        future: _categoriesFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      backgroundColor: highContrast ? Colors.black : Colors.white,
+      body: FutureBuilder<List<TagGroup>>(
+        future: _groupsFuture,
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
             return Center(
               child: CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(
-                  isHighContrast ? Colors.white : Colors.black,
+                  highContrast ? Colors.white : Colors.black,
                 ),
               ),
             );
-          } else if (snapshot.hasError) {
+          }
+
+          if (snap.hasError) {
             return Center(
               child: Text(
-                'Error: ${snapshot.error}',
-                style: TextStyle(color: isHighContrast ? Colors.white : Colors.black),
+                'Error: ${snap.error}',
+                style: TextStyle(
+                  color: highContrast ? Colors.white : Colors.black,
+                ),
               ),
             );
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          }
+
+          final groups = snap.data ?? [];
+          if (groups.isEmpty) {
             return Center(
               child: Text(
                 'No categories available',
-                style: TextStyle(color: isHighContrast ? Colors.white : Colors.black),
+                style: TextStyle(
+                  color: highContrast ? Colors.white : Colors.black,
+                ),
               ),
             );
-          } else {
-            final categories = snapshot.data!;
-            return ListView.builder(
-              itemCount: categories.length,
-              itemBuilder: (context, index) {
-                final category = categories[index];
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                  decoration: const BoxDecoration(
-                    border: Border(
-                      top: BorderSide(color: Color(0xFF003153)),
+          }
+
+          return ListView.builder(
+            itemCount: groups.length,
+            itemBuilder: (context, groupIndex) {
+              final TagGroup group = groups[groupIndex];
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Tag header
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(
+                      group.tag.name,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: highContrast ? Colors.white : Colors.blueAccent,
+                      ),
                     ),
                   ),
-                  child: ListTile(
-                    title: Text(
-                      category.name,
-                      style: TextStyle(
-                        color: isHighContrast ? Colors.white : Colors.black,
+                  // Categories under this tag
+                  ...group.categories.map(
+                    (Category cat) => Container(
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: Color(0xFF003153)),
+                        ),
                       ),
-                    ),
-                    subtitle: Text(
-                      "(${category.passageCount} 章)",
-                      style: TextStyle(
-                        color: isHighContrast ? Colors.white70 : Colors.black54,
-                      ),
-                    ),
-                    onTap: () {
-                      // Navigate to the CategoryPage for this specific category.
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CategoryPage(
-                            categoryName: category.name,
+                      child: ListTile(
+                        title: Text(
+                          cat.name,
+                          style: TextStyle(
+                            color:
+                                highContrast ? Colors.white : Colors.black,
                           ),
                         ),
-                      );
-                    },
+                        subtitle: Text(
+                          '(${cat.passageCount} 章)',
+                          style: TextStyle(
+                            color: highContrast
+                                ? Colors.white70
+                                : Colors.black54,
+                          ),
+                        ),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CategoryPage(
+                              categoryName: cat.name,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                );
-              },
-            );
-          }
+                ],
+              );
+            },
+          );
         },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAccessibilityOptionsSheet,
-        backgroundColor: isHighContrast ? Colors.black : null,
+        backgroundColor: highContrast ? Colors.black : null,
         child: Icon(
           Icons.accessibility,
-          color: isHighContrast ? Colors.white : Colors.blueAccent,
+          color: highContrast ? Colors.white : Colors.blueAccent,
+        ),
+      ),
+    );
+  }
+
+  /* ───────────────  bottom-sheet with high-contrast switch  ─────────────── */
+
+  void _showAccessibilityOptionsSheet() {
+    final settings = context.read<SettingsProvider>();
+
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('高對比模式', style: TextStyle(fontSize: 16)),
+              Switch(
+                value: settings.isHighContrast,
+                onChanged: settings.toggleHighContrast,
+              ),
+            ],
+          ),
         ),
       ),
     );
