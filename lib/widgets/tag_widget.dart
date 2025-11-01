@@ -11,7 +11,7 @@ class TagWidget extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
       margin: const EdgeInsets.symmetric(vertical: 4.0),
       decoration: BoxDecoration(
-        color: Colors.deepOrangeAccent,
+        color: Colors.blueGrey,
         borderRadius: BorderRadius.circular(8.0),
       ),
       child: Text(
