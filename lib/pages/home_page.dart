@@ -1,3 +1,4 @@
+// lib/pages/home_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -6,6 +7,7 @@ import '../models/tag_group.dart';
 import '../models/category_model.dart';
 import 'category_page.dart';
 import '../providers/settings_provider.dart';
+import '../widgets/tag_widget.dart'; // Importing the custom TagWidget
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -65,8 +67,8 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: highContrast ? Colors.black : null,
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh,
-                color: highContrast ? Colors.white : null),
+            icon:
+                Icon(Icons.refresh, color: highContrast ? Colors.white : null),
             tooltip: 'Refresh',
             onPressed: _forceRefresh,
           ),
@@ -116,18 +118,10 @@ class _HomePageState extends State<HomePage> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Tag header
+                  // Tag header using TagWidget
                   Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Text(
-                      group.tag.name,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: highContrast ? Colors.white : Colors.blueAccent,
-                      ),
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: TagWidget(tag: group.tag.name),
                   ),
                   // Categories under this tag
                   ...group.categories.map(
