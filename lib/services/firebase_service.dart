@@ -1,4 +1,4 @@
-// firebase_service.dart
+// lib/services/firebase_service.dart
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -6,152 +6,149 @@ import 'package:firebase_storage/firebase_storage.dart';
 
 import '../models/passage_model.dart';
 import '../models/category_model.dart';
-import '../models/tag_model.dart';          // NEW
-import '../models/tag_group.dart';         // NEW (see below)
+import '../models/tag_model.dart';
+import '../models/tag_group.dart';
 
 class FirebaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage   = FirebaseStorage.instance;
+  final FirebaseStorage   _storage   = FirebaseStorage.instance;
 
-  /* ───────────────────────  PASSAGES  ─────────────────────── */
+  /* ────────────────────────  PASSAGES  ──────────────────────── */
 
   Future<List<Passage>> getPassages() async {
-    try {
-      final qs = await _firestore.collection('passages').get();
-      return qs.docs
-          .map((d) => Passage.fromMap(d.data() as Map<String, dynamic>, d.id))
-          .toList();
-    } catch (_) {
-      rethrow;
-    }
+    final qs = await _firestore.collection('passages').get();
+    return qs.docs
+        .map((d) => Passage.fromMap(d.data() as Map<String, dynamic>, d.id))
+        .toList();
   }
 
   Future<List<Passage>> getPassagesForCategory(String categoryName) async {
-    try {
-      final qs = await _firestore
-          .collection('passages')
-          .where('category', isEqualTo: categoryName)
-          .get();
-      return qs.docs
-          .map((d) => Passage.fromMap(d.data() as Map<String, dynamic>, d.id))
-          .toList();
-    } catch (_) {
-      rethrow;
-    }
+    final qs = await _firestore
+        .collection('passages')
+        .where('category', isEqualTo: categoryName)
+        .get();
+    return qs.docs
+        .map((d) => Passage.fromMap(d.data() as Map<String, dynamic>, d.id))
+        .toList();
+  }
+
+  Future<Passage?> getPassageById(String passageId) async {
+    final doc =
+        await _firestore.collection('passages').doc(passageId).get();
+    if (!doc.exists) return null;
+    return Passage.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+  }
+
+  /// still useful in other screens – left here unchanged
+  Future<Passage?> getFirstPassageForTag(String tagId) async {
+    final catSnap = await _firestore
+        .collection('categories')
+        .where('tagId', isEqualTo: tagId)
+        .get();
+
+    if (catSnap.docs.isEmpty) return null;
+
+    final List<String> catNames =
+        catSnap.docs.map((d) => d.data()['name'] as String).toList();
+
+    final passSnap = await _firestore
+        .collection('passages')
+        .where('category', whereIn: catNames.take(10).toList())
+        .orderBy('title')
+        .limit(1)
+        .get();
+
+    if (passSnap.docs.isEmpty) return null;
+    final doc = passSnap.docs.first;
+    return Passage.fromMap(doc.data() as Map<String, dynamic>, doc.id);
   }
 
   Future<String> uploadAudio(File audioFile, String fileName) async {
-    try {
-      final ref        = _storage.ref().child('audios').child(fileName);
-      final snapshot   = await ref.putFile(audioFile);
-      final downloadUrl = await snapshot.ref.getDownloadURL();
-      return downloadUrl;
-    } catch (_) {
-      rethrow;
-    }
+    final ref      = _storage.ref().child('audios').child(fileName);
+    final snapshot = await ref.putFile(audioFile);
+    return snapshot.ref.getDownloadURL();
   }
 
-  /// Insert a passage and increment passageCount on its category (transaction).
   Future<void> addPassage(
     String title,
     String content,
     String audioUrl,
     String categoryName,
   ) async {
-    try {
-      final newPassageRef = _firestore.collection('passages').doc();
-      final categoryRef   = _firestore.collection('categories').doc(categoryName);
+    final newPassageRef = _firestore.collection('passages').doc();
+    final categoryRef   =
+        _firestore.collection('categories').doc(categoryName);
 
-      await _firestore.runTransaction((tx) async {
-        tx.set(newPassageRef, {
-          'title'   : title,
-          'content' : content,
-          'audioUrl': audioUrl,
-          'category': categoryName,
-        });
-        tx.update(categoryRef, {
-          'passageCount': FieldValue.increment(1),
-        });
+    await _firestore.runTransaction((tx) async {
+      tx.set(newPassageRef, {
+        'title'   : title,
+        'content' : content,
+        'audioUrl': audioUrl,
+        'category': categoryName,
       });
-    } catch (_) {
-      rethrow;
-    }
+      tx.update(categoryRef, {
+        'passageCount': FieldValue.increment(1),
+      });
+    });
   }
 
-  /* ───────────────────────  TAGS  ─────────────────────── */
+  /* ───────────────────────────  TAGS  ─────────────────────────── */
 
   Future<List<Tag>> getTags() async {
-    try {
-      final qs = await _firestore.collection('tags').get();
-      return qs.docs
-          .map((d) => Tag.fromFirestore(d.id, d.data()))
-          .toList();
-    } catch (_) {
-      rethrow;
-    }
+    final qs = await _firestore.collection('tags').get();
+    return qs.docs
+        .map((d) => Tag.fromFirestore(d.id, d.data()))
+        .toList();
   }
 
-  /* ───────────────────────  CATEGORIES  ─────────────────────── */
+  /* ────────────────────────  CATEGORIES  ──────────────────────── */
 
-  /// Fetch all categories.  Each document **must** contain a
-  /// `name` and `tagId` field, and optionally a stored `passageCount`.
   Future<List<Category>> getCategories() async {
-    try {
-      final qs = await _firestore.collection('categories').get();
-      final List<Category> list = [];
+    final qs = await _firestore.collection('categories').get();
+    final List<Category> list = [];
 
-      for (final doc in qs.docs) {
-        final data = doc.data() as Map<String, dynamic>;
+    for (final doc in qs.docs) {
+      final data = doc.data() as Map<String, dynamic>;
 
-        // If you trust the stored passageCount simply read it:
-        final storedCount = data['passageCount'];
+      final storedCount = data['passageCount'];
+      final passageSnapshot = storedCount == null
+          ? await _firestore
+              .collection('passages')
+              .where('category', isEqualTo: data['name'])
+              .get()
+          : null;
 
-        // otherwise, compute it like before (slower):
-        final passageSnapshot = storedCount == null
-            ? await _firestore
-                .collection('passages')
-                .where('category', isEqualTo: data['name'])
-                .get()
-            : null;
-
-        list.add(
-          Category(
-            id           : doc.id,
-            name         : data['name'] ?? 'Unnamed',
-            passageCount : storedCount ?? passageSnapshot!.docs.length,
-            tagId        : data['tagId'],                // NEW
-          ),
-        );
-      }
-      return list;
-    } catch (e) {
-      throw Exception('Error fetching categories: $e');
+      list.add(
+        Category(
+          id             : doc.id,
+          name           : data['name'] ?? 'Unnamed',
+          passageCount   : storedCount ?? passageSnapshot!.docs.length,
+          tagId          : data['tagId'],
+          directPassageId: data['directPassageId'], // ← NEW
+        ),
+      );
     }
+    return list;
   }
 
-  /* ───────────────────────  GROUPS (Tags + Categories)  ─────────────────────── */
+  /* ──────────────────────  TAG-GROUPS  ────────────────────── */
 
-  /// Convenience method that joins tags + categories and
-  /// returns them ready for the HomePage.
   Future<List<TagGroup>> getTagGroups() async {
     final tags       = await getTags();
     final categories = await getCategories();
 
-    // Build a map tagId -> Tag
     final tagMap = {for (final t in tags) t.id: t};
 
-    // Group categories under their tagId
     final Map<String, List<Category>> buckets = {};
     for (final c in categories) {
-      if (!tagMap.containsKey(c.tagId)) continue;  // ignore orphans
+      if (!tagMap.containsKey(c.tagId)) continue;
       buckets.putIfAbsent(c.tagId, () => []).add(c);
     }
 
-    // Build TagGroup list
     final groups = buckets.entries
         .map((e) => TagGroup(tag: tagMap[e.key]!, categories: e.value))
         .toList()
-      ..sort((a, b) => a.tag.order.compareTo(b.tag.order)); // by order field
+      ..sort((a, b) => a.tag.order.compareTo(b.tag.order));
 
     return groups;
   }
