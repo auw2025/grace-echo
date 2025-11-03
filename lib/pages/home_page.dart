@@ -190,11 +190,6 @@ class _HomePageState extends State<HomePage> {
                             style: TextStyle(
                                 color:
                                     contrast ? Colors.white : Colors.black)),
-                        subtitle: Text('(${cat.passageCount} 章)',
-                            style: TextStyle(
-                                color: contrast
-                                    ? Colors.white70
-                                    : Colors.black54)),
                         onTap: () => _handleCategoryTap(group, cat),
                       ),
                     ),
